@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Upload extends Model
 {
@@ -25,4 +26,13 @@ class Upload extends Model
         return $this->morphTo();
     }
 
+    // to get the image url.
+    public function getFileUrlAttribute()
+    {
+        $media = "";
+        if(Storage::disk('public')->exists($this->file_path)){
+            $media = asset('storage/'.$this->file_path);
+        }
+        return $media;
+    }
 }

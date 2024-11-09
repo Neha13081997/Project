@@ -30,8 +30,8 @@ class UserHasRole implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         $this->attribute = $attribute;
-        if($this->type == 'uuid'){
-            $col = 'users.uuid';
+        if($this->type == 'id'){
+            $col = 'users.id';
             $val = $value;
         } else {
             $col = 'users.email';

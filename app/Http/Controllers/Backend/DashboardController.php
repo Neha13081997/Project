@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Backend;
 use App\Http\Controllers\Controller;
+use App\Models\Post;
 use Illuminate\Http\Request;
 use App\Models\Role;
+use App\Models\User;
+
 class DashboardController extends Controller
 {
     /**
@@ -11,7 +14,17 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        return view('home');
+        $staffCount = User::whereHas('roles',function($query){
+            $query->where('id',config('constant.roles.staff'));
+        })->count();
+
+        $coustomerCount = User::whereHas('roles',function($query){
+            $query->where('id',config('constant.roles.customer'));
+        })->count();
+
+        $postCount = Post::where('status','1')->count();
+        $roleCount = Role::count();
+        return view('home',compact('coustomerCount','staffCount','postCount','roleCount'));
     }
 
     /**

@@ -32,19 +32,27 @@ class LoginController extends Controller
             $remember_me = !is_null($request->remember_me) ? true : false;
             if (Auth::attempt($credentialsOnly, $remember_me))
             {  
-                $routeName = 'dashboard.index';
+                $routeName = 'admin.dashboard.index';
+                if(auth()->user()->is_customer){
+                    $routeName = 'home';
+                }
                 return redirect()->route($routeName)->with('status',trans('auth.messages.login.success'));
             }
 
-            $loginRouteName = 'login';
+            $loginRouteName = 'admin.login';
+            if($user->is_customer){
+                $loginRouteName = 'user.login';
+            }
             return redirect()->route($loginRouteName)->with('status',trans('auth.failed'));
-
         }
     }
 
-    public function logout(Request $request)
+    public function logout()
     {
-        $routeName = 'login';
+        $routeName = 'admin.login';
+        if(auth()->user()->is_customer){
+            $routeName = 'user.login';
+        }
         Auth::guard('web')->logout();
         return redirect()->route($routeName);
     }

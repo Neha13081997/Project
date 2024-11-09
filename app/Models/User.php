@@ -56,4 +56,47 @@ class User extends Authenticatable
     public function roles(){
         return $this->belongsToMany(Role::class);
     }
+
+    // define attributes : Start
+    public function getIsAdminAttribute()
+    {
+        return $this->roles()->where('id', config('constant.roles.admin'))->exists();
+    }
+
+    public function getIsStaffAttribute()
+    {
+        return $this->roles()->where('id', config('constant.roles.staff'))->exists();
+    }
+
+    public function getIsCustomerAttribute()
+    {
+        return $this->roles()->where('id', config('constant.roles.customer'))->exists();
+    }
+    // define attributes : End
+
+    // user profile image : Start
+    public function profileImage()
+    {
+        return $this->morphOne(Upload::class, 'uploadsable')->where('type', 'user_profile');
+    }
+
+    public function getProfileImageUrlAttribute()
+    {
+        if ($this->profileImage) {
+            return $this->profileImage->file_url;
+        }
+        return "";
+    }
+
+    public function uploads()
+    {
+        return $this->morphMany(Upload  ::class, 'uploadsable');
+    }
+    // user profile image : End
+
+
+    public function posts()
+    {
+        return $this->hasMany(Post::class,'user_id');
+    }
 }
