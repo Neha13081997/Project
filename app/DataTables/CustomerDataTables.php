@@ -62,6 +62,11 @@ class CustomerDataTables extends DataTable
                 config('constant.roles.staff')
             ]);
         });
+        if (request()->has('role_id') && request()->role_id) {
+            $query->whereHas('roles', function($q) {
+                $q->where('roles.id', request()->role_id);
+            });
+        }
         // dd(request()->all());
         if (request()->has('start_date') && request()->has('end_date')) {
             $query->whereBetween('created_at', [request('start_date'), request('end_date')]);

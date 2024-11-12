@@ -21,7 +21,8 @@ class CustomerController extends Controller
     {
         abort_if(Gate::denies('customer_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         try {
-            return $dataTable->render('backend.customer.index');
+            $roles = Role::where('name', '!=', 'Admin')->get();
+            return $dataTable->render('backend.customer.index',compact('roles'));
         } catch (\Exception $e) {
             return abort(500);
         }

@@ -14,7 +14,7 @@ class UpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -26,11 +26,8 @@ class UpdateRequest extends FormRequest
     {
         $rules = [];
         if($this->step_no == 1){
-            $post = Post::where('id',$this->post_id)->first();
-
-            $post_id =  $post->id;
-
-            $rules['title']          = ['required', 'regex:/^[a-zA-Z\s]+$/','string',  new NoMultipleSpacesRule, Rule::unique('posts', 'title')->ignore($post_id, 'id')->whereNull('deleted_at')];
+           
+            $rules['title']          = ['required', 'regex:/^[a-zA-Z\s]+$/','string',  new NoMultipleSpacesRule, Rule::unique('posts', 'title')->ignore($this->post_id, 'id')->whereNull('deleted_at')];
         
             $rules['sub_title']            = ['nullable', 'string',  new NoMultipleSpacesRule];
 
@@ -42,9 +39,9 @@ class UpdateRequest extends FormRequest
         }
 
         if($this->step_no == 3){
-            $rules['location.country']            = ['required'];
-            $rules['location.city']               = ['required'];
-            $rules['location.street']             = ['nullable'];
+            $rules['city']          = ['required'];
+            $rules['street']        = ['nullable'];
+            $rules['country']       = ['required'];
         }
 
         return $rules;

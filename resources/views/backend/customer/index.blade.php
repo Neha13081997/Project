@@ -37,7 +37,18 @@
                             <label class="form-label">Date Range</label>
                             <input type="text" class="form-control date" id="daterange" name="daterange" data-toggle="date-picker" data-cancel-class="btn-warning">
                         </div>
-                        <!-- <div class="mb-2"><button class="btn btn-primary" type="submit">@lang('global.submit')</button></div> -->
+                    </div>
+                    <div class="col-lg-3">
+                        <!-- Date Range -->
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select class="form-select @error('role') is-invalid @enderror" name="role" id="roleFilter">
+                                <option value="">@lang('global.pleaseSelect')</option>
+                                @foreach ($roles as $role)
+                                <option value="{{ $role->id }}"  @if(old('role') == $role->id) selected @endif>{{ ucfirst($role->name) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="table-responsive-sm">
@@ -56,7 +67,6 @@
 <!-- Daterangepicker Plugin js -->
 <script src="{{ asset('backend/vendor/daterangepicker/moment.min.js') }}"></script>
 <script src="{{ asset('backend/vendor/daterangepicker/daterangepicker.js') }}"></script>
-
 
 <script>
     @can('customer_delete')
@@ -116,6 +126,10 @@
         $('#daterange').on('apply.daterangepicker', function(ev, picker) {
             $('#customer-table').DataTable().ajax.url(datatableUrl+'?'+$.param(params)).draw();
         });
+        $('#roleFilter').change(function() {
+        params.role_id = $(this).val(); // Update params with selected role
+        $('#customer-table').DataTable().ajax.url(datatableUrl + '?' + $.param(params)).draw();
+    });
     });
 </script>
 {!! $dataTable->scripts() !!}

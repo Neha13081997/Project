@@ -43,7 +43,7 @@ if (!function_exists('uploadImage')) {
 	 */
 	function uploadImage($directory, $file, $folder, $type="profile", $fileType="jpg",$actionType="save",$uploadId=null,$orientation=null)
 	{
-		
+		// dd($directory);
 		$oldFile = null;
         if($actionType == "save"){
 			$upload               		= new Upload;
@@ -58,6 +58,7 @@ if (!function_exists('uploadImage')) {
 		$upload->type 				= $type;
 		$upload->file_type 			= $fileType;
 		$upload->orientation 		= $orientation;
+		
 		$response             		= $directory->uploads()->save($upload);
 		// dd($upload);
         // delete old file

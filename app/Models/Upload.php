@@ -8,10 +8,10 @@ use Illuminate\Support\Facades\Storage;
 class Upload extends Model
 {
     protected $fillable = [
-        'name',
+        // 'name',
         'uploadsable',
         'file_path',
-        'title',
+        // 'title',
         'original_file_name',
         'type',
         'file_type',

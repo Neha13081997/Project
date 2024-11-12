@@ -84,7 +84,7 @@
 <script>
     
     let userObj = {
-        id:null
+        post_id:null
     };
     
 </script>

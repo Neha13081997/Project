@@ -23,20 +23,18 @@ class AuthGatesMiddleware
         if (!app()->runningInConsole() && $user) {
             $roles            = Role::with('permissions')->get();
             $permissionsArray = [];
-
+            
             foreach ($roles as $role) {
                 foreach ($role->permissions as $permissions) {
                     $permissionsArray[$permissions->name][] = $role->id;    // get the data as associated array like ['edit-post' => [1,2], ... ]
                 }
             }
-
             foreach ($permissionsArray as $name => $roles) {
                 Gate::define($name, function (User $user) use ($roles) {
                     return count(array_intersect($user->roles->pluck('id')->toArray(), $roles)) > 0;   // if a single permission count will get then will send true and pass the middleware.
                 });
             }
         }
-
         return $next($request);
     }
 }

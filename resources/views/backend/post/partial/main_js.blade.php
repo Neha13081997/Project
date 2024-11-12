@@ -1,265 +1,350 @@
 <script>
-      $(document).ready(function() {
-        renderStepForm("{{ route('admin.post.stepForm',1) }}",'step1Section',userObj.id);
+    $(document).ready(function() {
+
+        renderStepForm("{{ route('admin.post.stepForm',1) }}", 'step1Section', userObj.post_id);
 
         $('.navTab').on('click', function(e) {
             e.preventDefault();
-    
+
             var $this = $(this);
-    
+
             var tabRoute = $this.attr('href');
             var tabId = $this.attr('data-tab-type');
-    
-            renderStepForm(tabRoute,tabId,userObj.id);
-    
+
+            renderStepForm(tabRoute, tabId, userObj.post_id);
         });
 
-         //Back button
-         $(document).on('click',".back-tab",function(e){
+        //Back button
+        $(document).on('click', ".back-tab", function(e) {
             e.preventDefault();
 
             var $this = $(this);
 
             var tabPrevRoute = $this.attr('data-prev-step-route');
-
+            var post_id = $this.attr('data-post-id');
             var tabNumber = $this.parents('form').attr('data-step-form-no');
 
             tabNumber = parseInt(tabNumber) - 1;
-            
-            var prevtabId = 'step'+tabNumber+'Section';
 
-            renderStepForm(tabPrevRoute,prevtabId,userObj.id);
+            var prevtabId = 'step' + tabNumber + 'Section';
 
+            console.log(tabPrevRoute);
+            console.log(post_id);
+            renderStepForm(tabPrevRoute, prevtabId, post_id);
         });
-       
+
+        $(document).on('submit', '.step-form', function(e) {
+            e.preventDefault();
+
+            $(".submitBtn").attr('disabled', true);
+            $('.validation-error-block').remove();
+            $(".card-disabled").css('display', 'block');
+
+            var formData = new FormData(this);
+            var stepFormNo = $(this).attr('data-step-form-no');
+            formData.append('step_no', stepFormNo);
+
+            // Check if `post_id` exists in userObj
+            if (userObj.post_id) {
+                formData.append('post_id', userObj.post_id);
+            }
+
+            // Append description for stepFormNo 2
+            if (stepFormNo == 2) {
+                formData.append('description', $('#hidden-input').val());
+            }
+
+            // Determine action URL and method type based on post_id presence
+            var actionUrl = userObj.post_id ?
+                "{{ route('admin.post.update', ':id') }}".replace(':id', userObj.post_id) :
+                "{{ route('admin.post.store') }}";
+            console.log(actionUrl);
+            var methodType = userObj.post_id ? 'PUT' : 'POST';
+
+            // Set up AJAX headers, including CSRF token
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    ...(methodType === 'PUT' && {
+                        'X-HTTP-Method-Override': 'PUT'
+                    })
+                }
+            });
+
+            // Send AJAX request
+            $.ajax({
+                type: 'POST', // Use POST, but override to PUT if necessary
+                url: actionUrl,
+                dataType: 'json',
+                contentType: false,
+                processData: false,
+                data: formData,
+                success: function(response) {
+                    handleSuccessResponse(response);
+                },
+                error: function(response) {
+                    handleErrorResponse(response);
+                },
+                complete: function() {
+                    $(".submitBtn").attr('disabled', false);
+                    $(".card-disabled").css('display', 'none');
+                }
+            });
+        });
+
+        function handleSuccessResponse(response) {
+            if (response.success) {
+                toasterAlert('success', response.message);
+                $('.step-form')[0].reset();
+
+                if (response.nextStep > 4) {
+                    setTimeout(function() {
+                        window.location.href = "{{ route('admin.post.index') }}";
+                    }, 2000);
+                }
+
+                var $nextTab = $('.nav-link[data-step="' + response.nextStep + '"]');
+                $nextTab.removeClass('disabled').tab('show');
+
+                var tabRoute = $nextTab.attr('href');
+                var tabId = $nextTab.attr('data-tab-type');
+
+                if (response.post_id) {
+                    userObj.post_id = response.post_id;
+                }
+
+                renderStepForm(tabRoute, tabId, userObj.post_id);
+            }
+        }
+
+        function handleErrorResponse(response) {
+            if (response.responseJSON.error_type === 'something_error') {
+                toasterAlert('error', response.responseJSON.error);
+            } else {
+                $.each(response.responseJSON.errors, function(key, item) {
+                    var errorLabel = `<span class="validation-error-block">${item[0]}</span>`;
+                    if (/^\w+\.\d+\.\w+$/.test(key)) {
+                        var keys = key.split('.');
+                        var transformedKey = `${keys[0]}[${keys[1]}][${keys[2]}]`;
+                        $(errorLabel).insertAfter(`input[name='${transformedKey}']`);
+                    } else {
+                        $(errorLabel).insertAfter(`input[name='${key}']`);
+                    }
+                });
+            }
+        }
+
+
         // Start Step Form 
-        @if(isset($user_id))
-                $(document).on('submit', '.step-form', function(e) {
-                e.preventDefault();
-               
-                $(".submitBtn").attr('disabled', true);
-                $('.validation-error-block').remove();
+        // @if(isset($post_id))
+        //         $(document).on('submit', '.step-form', function(e) {
+        //         e.preventDefault();
 
-                $(".card-disabled").css('display', 'block');
+        //         $(".submitBtn").attr('disabled', true);
+        //         $('.validation-error-block').remove();
 
-                var formData = new FormData(this);
-                var stepFormNo = $(this).attr('data-step-form-no');
+        //         $(".card-disabled").css('display', 'block');
 
-                formData.append('step_no',stepFormNo);
-                formData.append('post_id',userObj.id);
-                formData.append('user_id',userObj.user_id);
-               
-                if(stepFormNo == 2){
-                    formData.append('description',$('#hidden-input').val());
-                }
-               
-                var actionUrl = "{{ route('admin.post.update', $post_id) }}";
-                console.log(actionUrl);
-                if(stepFormNo){
-                    $.ajaxSetup({
-                        headers: {
-                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                        }
-                    });
-                   
-                    $.ajax({
-                        type: 'PUT',
-                        url: actionUrl,
-                        dataType: 'json',
-                        contentType: false,
-                        processData: false,
-                        data: formData,
-                        // headers: {
-                        //     'X-HTTP-Method-Override': 'PUT' // Spoof the HTTP method
-                        // },
-                        success: function (response) {
-                            console.log(response);
-                            $(".card-disabled").css('display', 'none');
+        //         var formData = new FormData(this);
+        //         var stepFormNo = $(this).attr('data-step-form-no');
+        //         formData.append('step_no',stepFormNo);
+        //         formData.append('post_id',userObj.post_id);
 
-                            $(".submitBtn").attr('disabled', false);
-                            if(response.success) {
-                                toasterAlert('success',response.message);
+        //         if(stepFormNo == 2){
+        //             formData.append('description',$('#hidden-input').val());
+        //         }
+        //         var actionUrl = "{{ route('admin.post.update', $post_id) }}";
+        //         if(stepFormNo){
+        //             $.ajaxSetup({
+        //                 headers: {
+        //                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        //                 }
+        //             });
 
-                                $('.step-form')[0].reset();
+        //             $.ajax({
+        //                 type: 'Post',
+        //                 url: actionUrl,
+        //                 dataType: 'json',
+        //                 contentType: false,
+        //                 processData: false,
+        //                 data: formData,
+        //                 headers: {
+        //                     'X-HTTP-Method-Override': 'PUT' // Spoof the HTTP method
+        //                 },
+        //                 success: function (response) {
+        //                     console.log(response);
+        //                     $(".card-disabled").css('display', 'none');
 
-                                if(response.nextStep > 4){
-                                    setTimeout(function() {
-                                        window.location.href = "{{ route('admin.post.index') }}";
-                                    }, 2000);
-                                }
+        //                     $(".submitBtn").attr('disabled', false);
+        //                     if(response.success) {
+        //                         toasterAlert('success',response.message);
 
-                                var $nextTab = $('.nav-link[data-step="'+response.nextStep+'"]');
-                               
-                                $nextTab.removeClass('disabled');
-                                // Trigger the next tab
-                                $nextTab.tab('show');
+        //                         $('.step-form')[0].reset();
 
-                                var tabRoute = $nextTab.attr('href');
-                                var tabId = $nextTab.attr('data-tab-type');
-                                
-                                if(response.user_id){
-                                    userObj.user_id = response.user_id;
-                                    userObj.id = response.post_id;
-                                    renderStepForm(tabRoute,tabId,userObj.user_id);
-                                }else{
-                                    renderStepForm(tabRoute,tabId);
-                                }
-                                
-                            }
-                        },
-                        error: function (response) {
-                            console.log(response);
-                            $(".card-disabled").css('display', 'none');
+        //                         if(response.nextStep > 4){
+        //                             setTimeout(function() {
+        //                                 window.location.href = "{{ route('admin.post.index') }}";
+        //                             }, 2000);
+        //                         }
 
-                            $(".submitBtn").attr('disabled', false);
-                            if(response.responseJSON.error_type == 'something_error'){
-                                toasterAlert('error',response.responseJSON.error);
-                            } else {
-                                var errorLabelTitle = '';
-                                $.each(response.responseJSON.errors, function (key, item) {
-                                    errorLabelTitle = '<span class="validation-error-block">'+item[0]+'</sapn>';
+        //                         var $nextTab = $('.nav-link[data-step="'+response.nextStep+'"]');
 
-                                    if (/^\w+\.\d+\.\w+$/.test(key)) {
-                                        
-                                        var keys = key.split('.');
+        //                         $nextTab.removeClass('disabled');
+        //                         // Trigger the next tab
+        //                         $nextTab.tab('show');
 
-                                        var transformedKey = keys[0]+'['+keys[1]+']'+'['+keys[2]+']';
-                                        
-                                        $(errorLabelTitle).insertAfter("input[name='"+transformedKey+"']");
+        //                         var tabRoute = $nextTab.attr('href');
+        //                         var tabId = $nextTab.attr('data-tab-type');
 
-                                    }else{
-                                        $(errorLabelTitle).insertAfter("input[name='"+key+"']");
-                                    }
+        //                         if(response.post_id){
+        //                             userObj.post_id = response.post_id;
+        //                             renderStepForm(tabRoute,tabId,userObj.post_id);
+        //                         }else{
+        //                             renderStepForm(tabRoute,tabId);
+        //                         }
 
-                                });
-                            }
-                        },
-                        complete: function(res){
-                            $(".submitBtn").attr('disabled', false);
-                        }
-                    });
-                }
-                
-            });
+        //                     }
+        //                 },
+        //                 error: function (response) {
+        //                     console.log(response);
+        //                     $(".card-disabled").css('display', 'none');
 
-        @else
+        //                     $(".submitBtn").attr('disabled', false);
+        //                     if(response.responseJSON.error_type == 'something_error'){
+        //                         toasterAlert('error',response.responseJSON.error);
+        //                     } else {
+        //                         var errorLabelTitle = '';
+        //                         $.each(response.responseJSON.errors, function (key, item) {
+        //                             errorLabelTitle = '<span class="validation-error-block">'+item[0]+'</sapn>';
 
-            $(document).on('submit', '.step-form', function(e) {
-                e.preventDefault();
-               
-                $(".submitBtn").attr('disabled', true);
+        //                             if (/^\w+\.\d+\.\w+$/.test(key)) {
 
-                $('.validation-error-block').remove();
+        //                                 var keys = key.split('.');
 
-                $(".card-disabled").css('display', 'block');
+        //                                 var transformedKey = keys[0]+'['+keys[1]+']'+'['+keys[2]+']';
 
-                var formData = new FormData(this);
-              
-                var stepFormNo = $(this).attr('data-step-form-no');
-                formData.append('step_no',stepFormNo);
-                formData.append('user_id',userObj.id);
-                
-                if(stepFormNo == 2){
-                    formData.append('description',$('#hidden-input').val());
-                }
+        //                                 $(errorLabelTitle).insertAfter("input[name='"+transformedKey+"']");
 
-                var actionUrl = "{{ route('admin.post.store') }}";
-                
-                if(stepFormNo){
+        //                             }else{
+        //                                 $(errorLabelTitle).insertAfter("input[name='"+key+"']");
+        //                             }
 
-                    $.ajax({
-                        type: 'post',
-                        url: actionUrl,
-                        dataType: 'json',
-                        contentType: false,
-                        processData: false,
-                        data: formData,
-                        success: function (response) {
-                            $(".card-disabled").css('display', 'none');
+        //                         });
+        //                     }
+        //                 },
+        //                 complete: function(res){
+        //                     $(".submitBtn").attr('disabled', false);
+        //                 }
+        //             });
+        //         }
 
-                            $(".submitBtn").attr('disabled', false);
-                            if(response.success) {
-                                toasterAlert('success',response.message);
+        //     });
 
-                                $('.step-form')[0].reset();
+        // @else
 
-                                if(response.nextStep > 4){
-                                    setTimeout(function() {
-                                        window.location.href = "{{ route('admin.post.index') }}";
-                                    }, 2000);
-                                }
+        //     $(document).on('submit', '.step-form', function(e) {
+        //         e.preventDefault();
 
-                                var $nextTab = $('.nav-link[data-step="'+response.nextStep+'"]');
+        //         $(".submitBtn").attr('disabled', true);
 
-                                $nextTab.removeClass('disabled');
-                                // Trigger the next tab
-                                $nextTab.tab('show');
+        //         $('.validation-error-block').remove();
 
-                                var tabRoute = $nextTab.attr('href');
-                                var tabId = $nextTab.attr('data-tab-type');
-                                
-                                console.log(response);
+        //         $(".card-disabled").css('display', 'block');
 
-                                if(response.user_id){
-                                    userObj.id = response.user_id;
+        //         var formData = new FormData(this);
 
-                                    renderStepForm(tabRoute,tabId,userObj.id);
-                                }else{
-                                    renderStepForm(tabRoute,tabId);
-                                }
-                            }
-                        },
-                        error: function (response) {
-                            // console.log(response);
-                            $(".card-disabled").css('display', 'none');
+        //         var stepFormNo = $(this).attr('data-step-form-no');
+        //         formData.append('step_no',stepFormNo);
+        //         formData.append('post_id',userObj.post_id);
+        //         if(stepFormNo == 2){
+        //             formData.append('description',$('#hidden-input').val());
+        //         }
+        //         var actionUrl = "{{ route('admin.post.store') }}";
 
-                            $(".submitBtn").attr('disabled', false);
-                            if(response.responseJSON.error_type == 'something_error'){
-                                toasterAlert('error',response.responseJSON.error);
-                            } else {
-                                var errorLabelTitle = '';
-                                $.each(response.responseJSON.errors, function (key, item) {
-                                    errorLabelTitle = '<span class="validation-error-block">'+item[0]+'</sapn>';
+        //         if(stepFormNo){
+        //             $.ajax({
+        //                 type: 'post',
+        //                 url: actionUrl,
+        //                 dataType: 'json',
+        //                 contentType: false,
+        //                 processData: false,
+        //                 data: formData,
+        //                 success: function (response) {
+        //                     $(".card-disabled").css('display', 'none');
 
-                                    if (/^\w+\.\d+\.\w+$/.test(key)) {
-                                        
-                                        var keys = key.split('.');
+        //                     $(".submitBtn").attr('disabled', false);
+        //                     if(response.success) {
+        //                         toasterAlert('success',response.message);
 
-                                        var transformedKey = keys[0]+'['+keys[1]+']'+'['+keys[2]+']';
-                                        
-                                        $(errorLabelTitle).insertAfter("input[name='"+transformedKey+"']");
+        //                         $('.step-form')[0].reset();
 
-                                    }else if(key == 'password'){
-                                        var elementItem = $("input[name='"+key+"']").parent();    
-                                        $(errorLabelTitle).insertAfter(elementItem);
+        //                         if(response.nextStep > 4){
+        //                             setTimeout(function() {
+        //                                 window.location.href = "{{ route('admin.post.index') }}";
+        //                             }, 2000);
+        //                         }
 
-                                    }else if(key == 'total_employees'/*|| key == 'founding_year'*/){
+        //                         var $nextTab = $('.nav-link[data-step="'+response.nextStep+'"]');
 
-                                        var elementItem = $("select[name='"+key+"']").siblings('span');    
-                                        
-                                        $(errorLabelTitle).insertAfter(elementItem);
+        //                         $nextTab.removeClass('disabled');
+        //                         // Trigger the next tab
+        //                         $nextTab.tab('show');
 
-                                    }else{
-                                        $(errorLabelTitle).insertAfter("input[name='"+key+"']");
-                                    }
+        //                         var tabRoute = $nextTab.attr('href');
+        //                         var tabId = $nextTab.attr('data-tab-type');
 
-                                });
-                            }
-                        },
-                        complete: function(res){
-                            $(".submitBtn").attr('disabled', false);
-                        }
-                    });
-                }
-                
-            });
+        //                         console.log(response);
 
-        @endif
+        //                         if(response.post_id){
+        //                             userObj.post_id = response.post_id;
+
+        //                             renderStepForm(tabRoute,tabId,userObj.post_id);
+        //                         }else{
+        //                             renderStepForm(tabRoute,tabId);
+        //                         }
+        //                     }
+        //                 },
+        //                 error: function (response) {
+        //                     // console.log(response);
+        //                     $(".card-disabled").css('display', 'none');
+
+        //                     $(".submitBtn").attr('disabled', false);
+        //                     if(response.responseJSON.error_type == 'something_error'){
+        //                         toasterAlert('error',response.responseJSON.error);
+        //                     } else {
+        //                         var errorLabelTitle = '';
+        //                         $.each(response.responseJSON.errors, function (key, item) {
+        //                             errorLabelTitle = '<span class="validation-error-block">'+item[0]+'</sapn>';
+
+        //                             if (/^\w+\.\d+\.\w+$/.test(key)) {
+
+        //                                 var keys = key.split('.');
+
+        //                                 var transformedKey = keys[0]+'['+keys[1]+']'+'['+keys[2]+']';
+
+        //                                 $(errorLabelTitle).insertAfter("input[name='"+transformedKey+"']");
+
+        //                             }else{
+        //                                 $(errorLabelTitle).insertAfter("input[name='"+key+"']");
+        //                             }
+
+        //                         });
+        //                     }
+        //                 },
+        //                 complete: function(res){
+        //                     $(".submitBtn").attr('disabled', false);
+        //                 }
+        //             });
+        //         }
+
+        //     });
+
+        // @endif
         //End Step Form
     });
 
     // quill editor
-    function initializeQuill(){
+    function initializeQuill() {
         var quill = new Quill("#snow-editor", {
             theme: "snow",
             modules: {
@@ -289,7 +374,7 @@
                 ]
             }
         });
-        
+
         quill.on('text-change', function() {
             var content = quill.root.innerHTML;
             $('#hidden-input').val(content);
@@ -297,7 +382,7 @@
     }
 
     // initialize dropify
-    function initializeDropify(){
+    function initializeDropify() {
         $('.dropify').dropify();
         $('.dropify-errors-container').remove();
         $('.dropify-wrapper').find('.dropify-clear').hide();
@@ -309,52 +394,45 @@
             }
         });*/
 
-    }  
+    }
     // get the form
-    function renderStepForm(tabRoute,tabId,user_id=null){
+    function renderStepForm(tabRoute, tabId, post_id = null) {
+        console.log(post_id);
+        console.log(tabRoute);
         $('.tab-content').html('');
-        
+
         $(".card-disabled").css('display', 'block');
-    
+
         $.ajax({
             type: 'GET',
             url: tabRoute,
-            data:{user_id:user_id},
+            data: {
+                post_id: post_id
+            },
             success: function(response) {
-    
+
                 $(".card-disabled").css('display', 'none');
-                
+
                 $('.tab-content').html(response.html);
-    
+
                 // Activate the tab pane after loading its content
                 $('.navTab[data-tab-type="' + tabId + '"]').tab('show');
-    
-                // $(".select2").select2();
-    
-                // $('#founding_year').datepicker({
-                //     format: "yyyy",
-                //     viewMode: "years",
-                //     minViewMode: "years",
-                //     autoclose: true,
-                //     endDate: new Date(),
-                // });
 
                 if ($('#snow-editor').length > 0) {
                     initializeQuill();
                 }
 
                 initializeDropify();
-                
+
             },
             error: function(xhr, status, error) {
                 // console.log(xhr,status,error);
                 $(".card-disabled").css('display', 'none');
-    
-                if(xhr.responseJSON.error_type == 'something_error'){
-                    toasterAlert('error',xhr.responseJSON.error);
-                } 
+
+                if (xhr.responseJSON.error_type == 'something_error') {
+                    toasterAlert('error', xhr.responseJSON.error);
+                }
             }
         });
     }
-
 </script>

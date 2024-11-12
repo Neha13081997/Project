@@ -30,7 +30,7 @@ class StoreRequest extends FormRequest
             $rules['post_image']     = ['nullable', 'image', 'max:'.config('constant.profile_max_size'), 'mimes:jpeg,png,jpg'];
         }
         if($this->step_no == 2){
-            $rules['description']           = ['nullable'];
+            $rules['description']    = ['nullable'];
         }
         if($this->step_no == 3){
             $rules['city']          = ['required'];

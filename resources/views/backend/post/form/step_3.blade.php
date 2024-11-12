@@ -14,7 +14,7 @@
 
             <div class="mb-3 col-md-6 col-lg-4">
                 <label for="street" class="form-label">Street</label>
-                <input type="street" name="street" class="form-control" placeholder="Enter street" value="{{ $post->street ?? '' }}">
+                <input type="street" name="street" class="form-control" placeholder="Enter street" value="{{ isset($post) ? $post->street : ''}}">
             </div>
         </div>
 

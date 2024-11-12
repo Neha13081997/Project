@@ -17,7 +17,7 @@
 
         <ul class="pager wizard mb-0 list-inline">
             <li class="previous list-inline-item">
-                <button type="button" class="btn btn-light back-tab" data-prev-step-route="{{ route('admin.post.stepForm',1) }}"><i class="ri-arrow-left-line me-1"></i> Back </button>
+                <button type="button" class="btn btn-light back-tab" data-post-id="{{ isset($post) ? $post->id : null }}"  data-prev-step-route="{{ route('admin.post.stepForm',1) }}"><i class="ri-arrow-left-line me-1"></i> Back </button>
             </li>
             <li class="next list-inline-item float-end">
                 <button type="submit"  class="btn btn-success submitBtn">@lang('global.save')<i class="ri-arrow-right-line ms-1"></i></button>

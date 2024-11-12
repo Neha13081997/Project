@@ -32,7 +32,7 @@ class PostDatatables extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         // dd($query->with('posts')->get());
-        return (new EloquentDataTable($query->with(['user'])->select('posts.*')))
+        return (new EloquentDataTable($query->orderBy('id','desc')->with(['user'])->select('posts.*')))
             ->addIndexColumn()
             ->editColumn('created_at', function($record) {
                 return $record->created_at->format('d-m-Y');

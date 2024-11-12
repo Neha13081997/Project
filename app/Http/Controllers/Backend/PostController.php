@@ -43,12 +43,11 @@ class PostController extends Controller
      */
     public function store(StoreRequest $request)
     {
-        // abort_if(Gate::denies('company_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-
+        abort_if(Gate::denies('post_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         try {
             DB::beginTransaction();
 
-            $user_id = '';
+            $post_id = '';
 
             $step_no = $request->step_no;
 
@@ -79,6 +78,7 @@ class PostController extends Controller
                                 $actionType = 'save';
                                 uploadImage($createdPost, $request->post_image, 'post/image', "post_image", 'original', $actionType, $uploadId);
                             }
+                            $post_id = $createdPost->id;
                             $flag = true;
                         }
                     }
@@ -87,21 +87,21 @@ class PostController extends Controller
 
                 case 2:
 
-                    $findUser = User::where('id', $request->user_id)->first();
+                    $findPost = Post::where('id', $request->post_id)->first();
                     // dd($request->all());
-                    if ($findUser) {
-                        $user_id = $findUser->id;
-                        $findUser->posts()->update(['description' => $request->description]);
+                    if ($findPost) {
+                        $post_id = $findPost->id;
+                        $findPost->where('id',$post_id)->update(['description' => $request->description]);
                         $flag = true;
                     }
                     break;
 
                 case 3:
 
-                    $findUser = User::where('id', $request->user_id)->first();
-                    if ($findUser) {
-                        $user_id = $findUser->id;
-                        $findUser->posts()->update([
+                    $findPost = Post::where('id', $request->post_id)->first();
+                    if ($findPost) {
+                        $post_id = $findPost->id;
+                        $findPost->where('id',$post_id)->update([
                             'city' => $request->city,
                             'street' => $request->street,
                             'country' => $request->country,
@@ -122,15 +122,15 @@ class PostController extends Controller
             if ($flag) {
                 DB::commit();
 
-                $message = 'Company ' . trans('messages.crud.add_record');
+                $message = 'Post ' . trans('messages.crud.add_record');
                 if ($step_no != 1) {
-                    $message = 'Company ' . trans('messages.crud.update_record');
+                    $message = 'Post ' . trans('messages.crud.update_record');
                 }
 
                 return response()->json([
                     'success'    => true,
                     'nextStep'   => (int)$request->step_no + 1,
-                    'user_id'  => $user_id,
+                    'post_id'  => $post_id,
                     'message'    => $message,
                 ]);
             } else {
@@ -148,6 +148,7 @@ class PostController extends Controller
      */
     public function show(string $id)
     {
+        abort_if(Gate::denies('post_view'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         $post = Post::where('id', $id)->first();
         if ($post) {
             return view('backend.post.show', compact('post'));
@@ -162,16 +163,10 @@ class PostController extends Controller
     public function edit(string $id)
     {
         abort_if(Gate::denies('post_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-        $user_id = '';
-        $user = auth()->user();
-        if($user)
-        {
-            $user_id = $user->id;
-        }
         $post = Post::where('id', $id)->first();
         if ($post) {
             $post_id = $post->id;
-            return view('backend.post.edit', compact('post_id','user_id'));
+            return view('backend.post.edit', compact('post','post_id'));
         } else {
             return abort(404);
         }
@@ -180,16 +175,12 @@ class PostController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateRequest $request, string $postId)
+    public function update(UpdateRequest $request, string $post_id)
     {
-
-        Log::info('Update controller method hit', ['request' => $request->all()]);
-        // dd($request->all());
         abort_if(Gate::denies('post_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
         try {
             DB::beginTransaction();
-            // $user_id = $userId;
-            $post_id = $postId;
+            $post_id = $post_id;
 
             $step_no = $request->step_no;
 
@@ -207,10 +198,10 @@ class PostController extends Controller
 
                     $post = Post::where('id', $post_id)->first();
                     $updatedPost = $post->update($postRecord);
-
+                    $updatedPost = $post->refresh();
                     if ($updatedPost) {
                         if ($request->has('post_image')) {
-                            $uploadId = $post->post_image ? $post->post_image : null;
+                            $uploadId = $post->post_image ? $post->post_image->id : null;
                             $actionType = $uploadId ? 'update' : 'save';
                             uploadImage($updatedPost, $request->post_image, 'post/image', "post_image", 'original', $actionType, $uploadId);
                         }
@@ -223,7 +214,7 @@ class PostController extends Controller
 
                     $post = Post::where('id', $request->post_id)->first();
                     if ($post) {
-                        $post->company()->update(['description' => $request->description]);
+                        $post->update(['description' => $request->description]);
                         $flag = true;
                     }
 
@@ -233,7 +224,7 @@ class PostController extends Controller
 
                     $post = Post::where('id', $request->post_id)->first();
                     if ($post) {
-                        $post::update([
+                        $post->update([
                             'city' => $request->city,
                             'street' => $request->street,
                             'country' => $request->country,
@@ -308,8 +299,9 @@ class PostController extends Controller
     {
         // dd($request->all());
         try {
-            $post = Post::where('id',$request->user_id)->first();  
+            $post = Post::where('id',$request->post_id)->first();  
             if($post){
+                // dd('hello');
                 $html = view('backend.post.form.step_'.$step_no,compact('post'))->render();
             }
             else{

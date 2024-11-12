@@ -80,11 +80,9 @@
 
 <script>
     
-    var post_id = "{{$post_id}}";
-    var user_id = "{{$user_id}}";
+    var post_id = "{{$post->id}}";
     let userObj = {
-        id:post_id,
-        user_id:user_id
+        post_id:post_id
     };
 
 </script>
